@@ -1,0 +1,181 @@
+import pygame
+import random
+pygame.init()
+
+SIZE = (800,500) #screen size
+screen = pygame.display.set_mode(SIZE)
+
+#colors
+BLACK = (0,0,0)
+DARKBLUE = (0,0,139)
+WHITE = (255,255,255)
+GREEN = (50,205,50)
+DARKGREEN = (75,122,71)
+DARKORANGE = (212, 91, 18)
+ORANGE = (255,117,24)
+YELLOW = (243,188,46)
+DARKBROWN = (159,129,112)
+BEIGE = (255,228,196)
+
+#moon
+pygame.draw.ellipse(screen, WHITE, (460,25,60,60))
+
+#stars from left of roof
+pygame.draw.ellipse(screen, WHITE, (5,20,3,3))
+pygame.draw.ellipse(screen, WHITE, (10,90,3,3))
+pygame.draw.ellipse(screen, WHITE, (25,50,3,3))
+pygame.draw.ellipse(screen, WHITE, (30,115,5,5))
+pygame.draw.ellipse(screen, WHITE, (60,60,3,3))
+pygame.draw.ellipse(screen, WHITE, (65,15,3,3))
+pygame.draw.ellipse(screen, WHITE, (105,30,5,5))
+
+##stars from right of roof
+pygame.draw.ellipse(screen, WHITE, (225,20,3,3))
+pygame.draw.ellipse(screen, WHITE, (250,50,3,3))
+pygame.draw.ellipse(screen, WHITE, (275,15,5,5))
+pygame.draw.ellipse(screen, WHITE, (300,75,3,3))
+pygame.draw.ellipse(screen, WHITE, (310,40,3,3))
+pygame.draw.ellipse(screen, WHITE, (315,115,3,3))
+pygame.draw.ellipse(screen, WHITE, (345,75,3,3))
+pygame.draw.ellipse(screen, WHITE, (350,25,3,3))
+pygame.draw.ellipse(screen, WHITE, (385,125,3,3))
+pygame.draw.ellipse(screen, WHITE, (390,90,3,3))
+pygame.draw.ellipse(screen, WHITE, (400,45,3,3))
+pygame.draw.ellipse(screen, WHITE, (420,10,3,3))
+pygame.draw.ellipse(screen, WHITE, (430,80,5,5))
+pygame.draw.ellipse(screen, WHITE, (450,35,3,3))
+pygame.draw.ellipse(screen, WHITE, (460,115,3,3))
+pygame.draw.ellipse(screen, WHITE, (475,60,3,3))
+pygame.draw.ellipse(screen, WHITE, (510,100,3,3))
+pygame.draw.ellipse(screen, WHITE, (530,15,3,3))
+
+#house background shapes
+pygame.draw.rect(screen, GREEN, (0,140,800,300))
+pygame.draw.rect(screen, DARKBROWN, (50,85,225,215))
+pygame.draw.polygon(screen, BEIGE, ((40,90),(285,90),(160,10)),0)
+
+#door
+pygame.draw.rect(screen, BLACK, (145,235,35,65))
+pygame.draw.ellipse(screen, WHITE, (165,264,10,10))
+
+#top row left window
+pygame.draw.rect(screen, BLACK, (75,115,40,40))
+pygame.draw.line(screen, WHITE, (95,115),(95,155))
+pygame.draw.line(screen, WHITE, (75,135),(115,135))
+
+pygame.draw.line(screen, WHITE, (75,155),(115,155))
+pygame.draw.line(screen, WHITE, (75,115),(115,115))
+pygame.draw.line(screen, WHITE, (75,115),(75,155))
+pygame.draw.line(screen, WHITE, (115,115),(115,155))
+
+#top row middle window
+pygame.draw.rect(screen, BLACK, (142,115,40,40))
+pygame.draw.line(screen, WHITE, (162,115),(162,155))
+pygame.draw.line(screen, WHITE, (141,135),(182,135))
+pygame.draw.line(screen, WHITE, (142,155),(182,155))
+pygame.draw.line(screen, WHITE, (182,115),(182,155))
+pygame.draw.line(screen, WHITE, (141,115),(182,115))
+pygame.draw.line(screen, WHITE, (141,115),(141,155))
+
+#top row right window
+pygame.draw.rect(screen, BLACK, (210,115,40,40))
+pygame.draw.line(screen, WHITE, (230,115),(230,155))
+pygame.draw.line(screen, WHITE, (210,135),(250,135))
+
+pygame.draw.line(screen, WHITE, (210,155),(250,155))
+pygame.draw.line(screen, WHITE, (210,115),(250,115))
+pygame.draw.line(screen, WHITE, (210,115),(210,155))
+pygame.draw.line(screen, WHITE, (250,115),(250,155))
+
+#bottomw row left window
+pygame.draw.rect(screen, BLACK, (75,180,40,40))
+pygame.draw.line(screen, WHITE, (95,180),(95,220))
+pygame.draw.line(screen, WHITE, (75,200),(115,200))
+
+pygame.draw.line(screen, WHITE, (75,220),(115,220))
+pygame.draw.line(screen, WHITE, (75,180),(115,180))
+pygame.draw.line(screen, WHITE, (75,180),(75,220))
+pygame.draw.line(screen, WHITE, (115,180),(115,220))
+
+#bottomw row middle window
+pygame.draw.rect(screen, BLACK, (142,180,40,40))
+pygame.draw.line(screen, WHITE, (162,180),(162,220))
+pygame.draw.line(screen, WHITE, (141,200),(182,200))
+
+pygame.draw.line(screen, WHITE, (142,220),(182,220))
+pygame.draw.line(screen, WHITE, (182,220),(182,180))
+pygame.draw.line(screen, WHITE, (182,180),(142,180))
+pygame.draw.line(screen, WHITE, (142,180),(142,220))
+
+#bottom row right window
+pygame.draw.rect(screen, BLACK, (210,180,40,40))
+pygame.draw.line(screen, WHITE, (230,180),(230,220))
+pygame.draw.line(screen, WHITE, (210,200),(250,200))
+
+pygame.draw.line(screen, WHITE, (210,220),(250,220))
+pygame.draw.line(screen, WHITE, (210,180),(250,180))
+pygame.draw.line(screen, WHITE, (210,180),(210,220))
+pygame.draw.line(screen, WHITE, (250,180),(250,220))
+
+#triangle roof window
+pygame.draw.rect(screen, WHITE, (117,40,85,45))
+pygame.draw.rect(screen, BLACK, (122,45,75,35))
+pygame.draw.line(screen, WHITE, (159,40),(159,80))
+pygame.draw.line(screen, WHITE, (120,63),(200,63))
+
+#spider web on window
+pygame.draw.ellipse(screen, WHITE, (140,48,40,30),1)
+pygame.draw.ellipse(screen, WHITE, (145,53,30,20),1)
+pygame.draw.ellipse(screen, WHITE, (150,58,20,10),1)
+pygame.draw.line(screen, WHITE, (115,40),(160,63))
+pygame.draw.line(screen, WHITE, (115,80),(160,63))
+pygame.draw.line(screen, WHITE, (157,63),(200,45))
+pygame.draw.line(screen, WHITE, (153,60),(200,80))
+
+#left pumpkin
+pygame.draw.ellipse(screen, ORANGE, (75,260,30,40))
+pygame.draw.ellipse(screen, ORANGE, (85,260,30,40))
+pygame.draw.ellipse(screen, ORANGE, (95,260,30,40))
+pygame.draw.rect(screen, DARKGREEN, (98,247,5,15))
+pygame.draw.polygon(screen, BLACK, ((85,280),(95,280),(90,270)),0)
+pygame.draw.polygon(screen, BLACK, ((104,280),(114,280),(109,270)),0)
+pygame.draw.line(screen, BLACK, (90,290),(110,290),4)
+
+#right pumpkin
+pygame.draw.ellipse(screen, ORANGE, (200,260,30,40))
+pygame.draw.ellipse(screen, ORANGE, (210,260,30,40))
+pygame.draw.ellipse(screen, ORANGE, (220,260,30,40))
+pygame.draw.rect(screen, DARKGREEN, (223,247,5,15))
+pygame.draw.polygon(screen, BLACK, ((210,280),(220,280),(215,270)),0)
+pygame.draw.polygon(screen, BLACK, ((229,280),(239,280),(234,270)),0)
+pygame.draw.line(screen, BLACK, (215,290),(235,290),4)
+
+#trees
+pygame.draw.rect(screen, DARKBROWN, (460,150,15,60))
+pygame.draw.ellipse(screen, DARKORANGE, (430,90,75,75))
+
+pygame.draw.rect(screen, DARKBROWN, (430,200,15,60))
+pygame.draw.ellipse(screen, YELLOW, (400,135,75,75))
+
+pygame.draw.rect(screen, DARKBROWN, (525,175,15,60))
+pygame.draw.ellipse(screen, YELLOW, (495,110,75,75))
+
+pygame.draw.rect(screen, DARKBROWN, (485,225,15,60))
+pygame.draw.ellipse(screen, DARKORANGE, (440,125,110,110))
+
+#cloud function to draw two random clouds
+def cloud(x,y):
+  pygame.draw.ellipse(screen, WHITE, (x,y,50,50))
+  pygame.draw.ellipse(screen, WHITE, (x+40,y+15,30,30))
+  pygame.draw.ellipse(screen, WHITE, (x-20,y+15,30,30))
+
+cloudY = random.randint(10,35)
+cloud(5,cloudY)
+
+cloudX = random.randint(310,375)
+cloud(cloudX, 50)
+
+#end of code
+pygame.display.flip()
+pygame.time.wait(20000000)
+pygame.quit()
