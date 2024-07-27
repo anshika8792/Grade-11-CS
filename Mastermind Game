@@ -1,0 +1,373 @@
+import pygame
+import random
+
+#Define colors.
+colour1 = 'red'
+colour2 = "green"
+colour3 = "blue"
+colour4 = "yellow"
+colour5 = "purple"
+colour6 = "white"
+gray = (169,169,169)
+black = (0,0,0)
+
+#List of color names.
+color_names = [colour1,colour2,colour3,colour4,colour5,colour6]
+
+#Initializes game.
+pygame.init()
+
+#Sets up the screen.
+screenWidth = 400  
+screenHeight = 400 
+screen = pygame.display.set_mode((screenWidth,screenHeight))
+pygame.display.set_caption("Mastermind Game")
+
+#Defines box dimensions.
+box_width = 40
+box_height = 40
+box_margin = 10
+
+#Function to create a new random code.
+def generateNewGuess():
+  #Generates a new random code by shuffling characters.
+  characters = ['R', 'G', 'B', 'Y', 'P', 'W']  #List of available characters for the code.
+  random.shuffle(characters)  #Shuffles the characters randomly.
+  code = characters[:4]  #Selects the first 4 characters to form the code.
+  return "".join(code)  #Converts the list of characters into a string and returns the generated code.
+
+#Function to check the correctness of guesses.
+def checkGuesses(code,guess):
+  correctSpot = 0  #Counter for correctly placed colors in the guess.
+  wrongSpot = 0  #Counter for wrongly placed colors in the guess.
+  checkedIndices = []  #List to keep track of indices already checked.
+
+  print(code)
+
+  #Constructs a string with the first letter of each guess color.
+  guessString = ""
+  for word in guess:
+    guessString = guessString + word[0]  
+
+  #Checks for correct positions and counts them.
+  for i in range(len(code)):
+    #Compares each color in the code with the corresponding color in the guess.
+    if code[i].upper() == guessString[i].upper():
+      correctSpot += 1  #Increments correctSpot if the colors match.
+      checkedIndices.append(i)  #Stores the index to mark it as checked.
+
+  #Checks for wrong positions that are in the code but not in the correct spots.
+  code_copy = list(code)  #Creates a copy of the code to preserve the original.
+  for i in range(len(code)):
+    #Checks for colors not in correct positions but present in the code.
+    if i not in checkedIndices and guessString[i].upper() in code_copy:
+      wrongSpot += 1  #Increments wrongSpot if a color is found in the code but not in the right position.
+      code_copy.remove(guessString[i].upper())  #Removes the color to avoid counting it again.
+
+  return correctSpot, wrongSpot  #Returns the counts of correct and wrong positions.
+
+#Function to handle a new guess.
+def handleNewGuess():
+  #Handles a new guess by the user.
+  global attempts, maxAttempts, selected_colors, running, code, correctSpot, wrongSpot
+
+  #Checks if the game has made a guess and whether or not the game is over.
+  if len(selected_colors) == 4 and attempts <= maxAttempts:
+    correctSpot, wrongSpot = checkGuesses(code, selected_colors)
+    if correctSpot == len(code):
+      print("You are correct! Well done!")  #Prints a message if the guess is correct.
+      running = False  #Sets running to False to exit the game loop and end the game.
+    else:
+      #Displays the current guess and checks the correct and wrong positions.
+      print("Guess %s: %s"%(attempts+1,selected_colors))
+      correctSpot, wrongSpot = checkGuesses(code,selected_colors)
+      print("Correct position: %s, Wrong position: %s"%(correctSpot,wrongSpot))
+      selected_colors = []  #Resets the selected colors for the next guess.
+      attempts += 1  #Increments the attempts counter for the next guess.
+      print("New Guess.")  #Informs the user about starting a new guess.
+  #Checks if the user has reached the maximum attempts allowed.
+  elif attempts == maxAttempts:
+     print("Maximum attempts reached.")  #Prints a message informing the user.
+     running = False  #Sets the variable to False to exit the loop and end the game. 
+
+#Function to draw the guess boxes.
+def drawGuessBoxes():
+  #Uses global dimensions for box dimensions and margin.
+  global box_width, box_height, box_margin
+
+  #Starting coordinates for first guess box on the left.
+  x_Start = 150
+  y_Start = 25
+
+  #Draws 4 guess boxes with circles inside.
+  for _ in range(4):
+    #Draws a rectangle representing the guess box.
+    pygame.draw.rect(screen,gray,(x_Start, y_Start, box_width, box_height))
+    #Draws a circle inside a guess box.
+    pygame.draw.circle(screen,black,(x_Start + box_width // 2, y_Start + box_height // 2), 15)
+    #Updates x-coordinates for the next guess box.
+    x_Start += box_width + box_margin
+
+#Function to draw selectable colors.
+def drawSelectableColors():  
+  #Initial coordinates and dimensions for drawing selectable colors.
+  xStart = 155
+  y = 225
+  radius = 15
+  gap = 10
+  box_size = 2 * radius
+
+  #Calculates the total width needed for the selectable colors area.
+  total_width = len(color_names) * (radius * 2 + gap) + 2 * radius - 40
+  #Draws a background rectangle for selectable colors area.
+  pygame.draw.rect(screen, gray, (xStart - radius, y - radius, total_width, box_size),15)
+
+  #Draw circles for selectable colors.
+  i = 0
+  x = xStart  #Initial x-coordinate for the first selectable color circle.
+  while i < len(color_names):
+    color = color_names[i]  #Get the color from the list.
+    pygame.draw.circle(screen, color, (x, y), radius)  #Draw a circle for the current color.
+    x += radius * 2 + gap  #Update x-coordinate for the next color circle.
+    i += 1  #Move to the next color in the list.
+
+#Function to handle color selection by the player.
+def handleColorSelection(mouse_pos):
+  global selected_colors, color_names
+
+  xStart = 150  #Starting x-coordinate for the first selectable color circle.
+  y = 225  #y-coordinate for the row of selected color circles.
+  radius = 15  #Radius of the selectable color circles.
+  gap = 10  #Gap between each selectable color circle.
+  i = 0  #Counter for the color index.
+
+  #Checks if the mouse click falls within any selectable color circle.
+  while i < len(color_names):
+    circle_center = (xStart + (radius * 2 + gap) * i, y)  #Calculates the center of each color circle.
+
+    #Checks if the left mouse button is pressed and the click is within the current color circle.
+    if pygame.mouse.get_pressed()[0]:
+      if(mouse_pos[0] - circle_center[0]) ** 2 + (mouse_pos[1] - circle_center[1])**2 <= radius**2:  #Checks if the mouse click falls within the circular area of the color circle.
+        #Ensures the number of selected colors is less than 4.
+        if len(selected_colors) < 4 and color_names[i] not in selected_colors:
+          #Returns the index of the selected color.
+          return i
+
+    i += 1  #Increments the counter.
+
+  #Returns the index of the color selected.
+  return None
+
+#Function to draw the currently selected colors.
+def drawSelectedColors(selected_colors):
+  x_Start = 150  #Starting x-coordinate for the first selected color circle.
+  y_Start = 25   #y-coordinate for the row of selected color circles.
+
+  #Limits the number of circles to draw to a maximum of 4.
+  if len(selected_colors) > 4:
+    selected_colors = selected_colors[:4]
+
+  #Draws circles representing the currently selected colors.
+  i = 0  #Counter for index.
+  while i < len(selected_colors):
+    color = selected_colors[i]  #Get the color at the index.
+    #Calculates and draws circles for the selected colors.
+    pygame.draw.circle(screen,color,(x_Start + (box_width + box_margin) * i + box_width // 2, y_Start + box_height // 2),15)
+    i += 1
+
+#Function to draw the correct and wrong positions.
+def drawPositions(correct,wrong):
+  #Defines font for displaying text.
+  font = pygame.font.Font(None,27)
+
+  #Displays text showing the number of correct and wrong positions.
+  correct_text = font.render("Correct Spot: %s"%(correct),True,(0,0,0))  #Renders text for wrong positions.
+  wrong_text = font.render("Wrong Spot: %s"%(wrong),True,(0,0,0))    #Renders text for wrong positions.
+
+  #Blits(draws) the rendered text onto the game screen at specific positions.
+  screen.blit(correct_text,(170,80))
+  screen.blit(wrong_text,(170,110))
+
+#Function to draw labels for "Colours:" and "Your guess:"
+def drawLabels():
+  font = pygame.font.Font(None,27)  #Defines font for displaying text.
+
+  #Displays text labels for "Colours:" and "Guess #:".
+  #Text for "Colours:".
+  colours_text = font.render("Colours: ",True,black)
+  colours_rect = colours_text.get_rect(topleft=(40,215))
+  screen.blit(colours_text, colours_rect)
+
+  #Text for "Guess #:".
+  guess_text = font.render("Guess #%s:"%(attempts + 1),True,black)
+  guess_rect = guess_text.get_rect(topleft=(40,35))
+  screen.blit(guess_text,guess_rect)
+
+#Function to draw the "Next Guess" button.
+def drawNextGuessButton():
+  #Draws a rectangle representing the button.
+  pygame.draw.rect(screen,gray,(250,140,130,40))
+  font = pygame.font.Font(None, 28)
+  button_text = font.render("Next Guess", True, black)  #Renders text for button label.
+  text_rect = button_text.get_rect(center=(310,160))  #Defines text position for button label.
+  screen.blit(button_text, text_rect)  #Draws a button label on the screen.
+  return text_rect  #Returns rectangle for collision detection.
+
+#Function to draw the "Delete Guess" button.
+def drawDeleteGuessButton():
+  pygame.draw.rect(screen,gray,(100,140,130,40))  #Draws a rectangle representing the "Delete Guess" button.
+  font = pygame.font.Font(None,28)  #Defines font for button text.
+  button_text = font.render("Delete Guess", True, black)  #Renders text for button label.
+  text_rect = button_text.get_rect(center=(165,160))  #Defines text position for button label.
+  screen.blit(button_text, text_rect)  #Draws button label on the screen.
+  return text_rect  #Returns rectangle for collision detection.
+
+#Function to ask if player wants to play the game again.
+def playAgain():
+  font = pygame.font.Font(None,25)  #Defines font for displaying text.
+  text = font.render("Do you want to play again?(Y/N):",True,black)  #Renders text asking to play again.
+  text_rect = text.get_rect(center=(150,277))  #Defines text position for the play again prompt.
+  screen.blit(text,text_rect)  #Draws play again prompt on the screen.
+  pygame.display.flip()  #Updates display to show the prompt.
+
+  #Adds "Yes" or "No" boxes.
+  yes_box = pygame.Rect(screenWidth // 2 + 90, screenHeight // 2 + 60, 50,30)
+  no_box = pygame.Rect(screenWidth // 2 + 145, screenHeight // 2 + 60, 50,30)
+
+  pygame.draw.rect(screen, colour2, yes_box)  #Draws "Yes" box.
+  pygame.draw.rect(screen, colour1, no_box)  #Draws "No" box.
+
+  #Adds text in the boxes.
+  yes_text = font.render("Yes",True,black)
+  no_text = font.render("No",True,black)
+  screen.blit(yes_text, (screenWidth // 2 + 100, screenHeight // 2 + 70))
+  screen.blit(no_text, (screenWidth // 2 + 160, screenHeight // 2 + 70))
+  pygame.display.flip()  #Updates display to show the "Yes" and "No" options.
+
+  #Waits for user's response by clicking on "Yes" or "No" boxes.
+  while True:
+    for event in pygame.event.get():
+      if event.type == pygame.MOUSEBUTTONDOWN:
+        mouse_pos = event.pos
+        if yes_box.collidepoint(mouse_pos):
+          return True
+        elif no_box.collidepoint(mouse_pos):
+          return False
+
+#Main function controlling the game loop
+def main():
+  global selected_colors, attempts, maxAttempts, color_names, code, guess, correctSpot, wrongSpot
+
+  code = generateNewGuess()  #Generates a new code for the game.
+
+  #Initialize variables and start the game loop
+  selected_colors = []  #List to hold the selected colors by the player.
+  attempts = 0  #Counter for the number of attempts made by the player.
+  maxAttempts = 8  #Maximum allowed attempts for the player.
+  running = True  #Flag to control the game loop execution.
+
+  #Sets up Pygame clock to control frame rate.
+  clock = pygame.time.Clock()
+
+  correctSpot = 0  #Counter for correctly placed colors in a guess.
+  wrongSpot = 0  #Counter for wrongly placed colors in a guess.
+  show_positions = False  #Flag to control the display of correct and wrong positions.
+
+  #Main game loop.
+  while running:
+    #Fills the screen with a background color.
+    screen.fill((66,73,82))
+
+    #Draws the guess boxes and selectable colors.
+    drawGuessBoxes()
+    drawSelectableColors()
+
+    #Draws the player's current selection of colors.
+    drawSelectedColors(selected_colors)
+
+    #Displays the number of correct and wrong positions.
+    drawPositions(correctSpot,wrongSpot)
+
+    #Draws labels for "Colours:" and "Your guess:".
+    drawLabels()
+
+    #Draws the "Next Guess" button and store its rectangle for collision detection.
+    button_rect = drawNextGuessButton()
+    delete_button_rect = drawDeleteGuessButton()
+
+    #Updates the display.
+    pygame.display.flip()
+
+    #Event handling loop for user input
+    for event in pygame.event.get():
+      if event.type == pygame.QUIT:
+        running = False  #Exits the game if the user quits.
+
+      elif event.type == pygame.MOUSEBUTTONDOWN:
+        mouse_pos = pygame.mouse.get_pos()
+
+        #Handles color selection by the player.
+        color_index = handleColorSelection(mouse_pos)
+        if color_index is not None:
+            if len(selected_colors) < 4:
+              selected_colors.append(color_names[color_index])
+              print("Current guesses:", selected_colors)
+
+        #Handles deletion of selected color.
+        if delete_button_rect.collidepoint(mouse_pos):
+          if len(selected_colors) > 0:
+            selected_colors.pop()
+            print("Guess cleared.")
+
+    #Checks if the "Next Guess" button is clicked and 4 colors are selected.
+        if button_rect.collidepoint(mouse_pos) and len(selected_colors) == 4:
+          print("Guess %s: %s"%(attempts+1,selected_colors))
+          correctSpot, wrongSpot = checkGuesses(code,selected_colors)
+          print("Correct position: %s, Wrong position: %s"%(correctSpot,wrongSpot))
+
+          #Proceeds to the next attempt if attempts are within the limit.
+          if attempts < maxAttempts:
+            attempts += 1
+            selected_colors = []
+
+          if attempts == 4:
+            show_positions = True  #Displays the correct and wrong positions.
+
+      #If "Next Guess" button is clicked and show_positions flag is True, this handles the new guess.
+      if button_rect.collidepoint(pygame.mouse.get_pos()) and show_positions:
+          handleNewGuess()
+          show_positions = False
+
+    #If the show_positions flag is True, this draws the correct and wrong positions.
+    if show_positions:
+      drawPositions(correctSpot,wrongSpot)  
+
+    #If maximum attempts are reached or the player guesses the code, this ends the game.
+    if attempts == maxAttempts or correctSpot == len(code):
+      if correctSpot == len(code):
+        print("Congratulations! You guessed the correct code!")
+      else:
+        print("Maximum attempts reached. The correct code was",code)
+      if not playAgain():
+        break  #If the user chooses not to play again, this exits the game.
+      else:
+        #Resets the game for another round if the user wants to play again.
+        code = generateNewGuess()  #Generates a new code for a new gam.
+        selected_colors = []  #Resets selected colors.
+        attempts = 0  #Resets attempts counter.
+        correctSpot = 0  #Resets correct spot counter.
+        wrongSpot = 0  #Resets wrong spot counter.
+        show_positions = False  #Resets the show_positions flag.
+
+    #Updates the display at the end of each iteration.
+    pygame.display.update()
+
+    #Controls the frame rate of the game.
+    clock.tick(60)
+
+  #Quits Pygame when the game loop ends.
+  pygame.quit()
+
+#Starts the game when the script is executed directly.
+if __name__ == "__main__":
+  main()
