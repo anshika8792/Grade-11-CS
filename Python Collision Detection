@@ -1,0 +1,50 @@
+import math
+
+#Formula for the distance between two points.
+def distance(x1,y1,x2,y2):
+  d = math.sqrt((x2-x1)**2 + ((y2-y1)**2))
+  return d
+
+#Points x1 and y1 are the center of the first point. r1 is the radius.
+x1 = 100#0
+y1 = 50#0
+r1 = 200#4
+
+#Asks the user to input a coordinate (x,y) format and formats it. 
+coordinate1 = input("Please enter the coordinate in (x,y) format: ")
+coordinate = coordinate1.replace(" ", "")
+comma = coordinate.find(",")
+endBracket = coordinate.find(")")
+x2 = float(coordinate[1:comma])
+y2 = float(coordinate[comma+1:endBracket])
+
+#Calls the distance function.
+d1 = distance(x1, y1, x2, y2)
+
+#Determines where the point is relative to the circle. 
+if r1 == d1:
+  print("The point is on the circle.")
+elif r1 < d1:
+  print("The point is outside the circle.")
+elif r1 > d1:
+  print("The point is inside the circle.")
+
+print("\n") #Creates a new line
+
+#Asks the user to input a coordinate and formats it in (x,y)radius format.
+coordinate2 = input("Please enter the coordinate in (x,y)radius format: ")
+coordinate = coordinate2.replace(" ", "")
+x3 = int(coordinate[1:comma])
+y3 = int(coordinate[comma+1:endBracket])
+r3 = int(coordinate[endBracket+1:])
+
+#Calls the distance function.
+d1 = distance(x1, y1, x3, y3)
+
+#Determines the intersection of the circles.
+if d1 == r1 + r3:
+  print("The circles are the same.")
+elif d1 < r1 + r3:
+  print("The circles overlap.")
+elif d1 > r1 + r3:
+  print("The circles do not intersect.")
