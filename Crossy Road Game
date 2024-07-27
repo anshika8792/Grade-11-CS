@@ -1,0 +1,882 @@
+import pygame
+import sys 
+import random
+import math
+
+pygame.init()
+
+#Screen initilization 
+size = width, height = 1000, 700
+screen = pygame.display.set_mode(size)
+pygame.display.set_caption("Crossy Road Game")
+xBack = 0
+
+#Lane colors
+lane_color1 = (113, 121, 126)
+lane_color2 = (64, 64, 64)
+GRAY = (128, 128, 128)
+white = (255, 255, 255)
+black = (0, 0, 0)
+
+#Background image
+backgroundPic = pygame.image.load("menuBackground.png")
+original_background_width, original_background_height = backgroundPic.get_size()
+
+backgroundPic = pygame.transform.scale(backgroundPic, (width*(3/3), height*(3/3)))
+
+#Player image
+playerPic = pygame.image.load("animal.png")
+original_width, original_height = playerPic.get_size()
+scaled_width, scaled_height = original_width // 8, original_height // 8
+playerPic = pygame.transform.scale(playerPic, (scaled_width, scaled_height))
+
+player_rect = playerPic.get_rect()
+player_rect.topleft = (500, 660)
+player_speed = 2
+
+#First car image 
+carPic = pygame.image.load("car.png")
+orignial_car_width, orignial_car_height = carPic.get_size()
+
+scaled_car_width, scaled_car_height = orignial_car_width // 10, orignial_car_height // 10
+carPic = pygame.transform.scale(carPic, (scaled_car_width, scaled_car_height))
+
+#Second car image
+car2Pic = pygame.image.load("car2.png")
+orignial_car2_width, orignial_car2_height = car2Pic.get_size()
+
+scaled_car2_width, scaled_car2_height = orignial_car2_width // 10, orignial_car2_height // 10
+car2Pic = pygame.transform.scale(car2Pic, (scaled_car2_width, scaled_car2_height))
+
+#Log image
+logPic = pygame.image.load("log.png")
+orignial_log_width, orignial_log_height = logPic.get_size()
+
+scaled_log_width, scaled_log_height = orignial_log_width // 3.3, orignial_log_height // 3.3
+logPic = pygame.transform.scale(logPic, (scaled_log_width, scaled_log_height))
+
+#Point image
+pointPic = pygame.image.load("point.png")
+point_width, point_height = pointPic.get_size()
+
+scaled_point_width, scaled_point_height = point_width // 36, point_height // 36
+pointPic = pygame.transform.scale(pointPic, (scaled_point_width, scaled_point_height))
+
+#waste image
+wastePic = pygame.image.load("waste.png")
+waste_width, waste_height = wastePic.get_size()
+
+scaled_waste_width, scaled_waste_height = waste_width // 7, waste_height // 7
+wastePic = pygame.transform.scale(wastePic, (scaled_waste_width, scaled_waste_height))
+
+#Lives image
+livesPic = pygame.image.load("lives.png")
+lives_width, lives_height = livesPic.get_size()
+
+scaled_lives_width, scaled_lives_height = lives_width // 16, lives_height // 16
+livesPic = pygame.transform.scale(livesPic, (scaled_lives_width, scaled_lives_height))
+
+#States in the game
+STATE_MENU = 0
+STATE_GAME = 1
+STATE_HELP = 2
+STATE_QUIT = 3
+STATE_GAME_OVER = 4
+
+#Menu button constants
+MENU_BUTTON_WIDTH = 75
+MENU_BUTTON_HEIGHT = 35
+MENU_BUTTON_COLOR = (255,255,255)
+MENU_BUTTON_TEXT_COLOR = (0,0,0)
+
+#Game time settings
+total_level_time = 60000  # 1 minute (60000 milliseconds)
+time_remaining = total_level_time  #Variable to keep track of time remaining
+
+#Game variables initialization
+score = 0
+level = 1
+points_earned = 0
+num_lives = 3
+screen_y_offset = 0
+current_level_time = 0
+
+#Fonts
+menuFont = pygame.font.SysFont("Times New Roman",60)
+score_font = pygame.font.SysFont("Arial", 20)
+level_font = pygame.font.SysFont("Arial", 20)
+font = pygame.font.Font(None, 36)
+titleFont = pygame.font.Font("beachday.ttf", 100)
+titleFont2 = pygame.font.Font("beachday.ttf", 50)
+
+#Initializes game state variables
+state = STATE_MENU  #Initial game state
+running = True  #Flag to control the game loop
+myClock = pygame.time.Clock()  #Pygame clock for controlling the frame rate
+mx = my = 0  #Initialzes mouse coordinates
+
+#Lists to store positions of points and waste bins
+points = []  
+wastes = []  
+
+#Constants for game mechanic
+car_spacing = 250  #Spacing between cars
+log_spacing = 10  #Spacing between logs
+car_speed = 0.7  #Speed of cars
+log_speed = 0.8  #Speed of logs
+
+#Flags to keep track of whether player has crossed specific road lanes
+crossed_595 = False
+crossed_510 = False
+crossed_390 = False
+crossed_310 = False
+crossed_log = False
+
+#Variables related to player interaction 
+on_log = False
+on_log_rect = None
+deduct_life = False
+game_over = False
+show_game_over_screen = False
+crossed_top_edge = False
+crossed_lane = False
+
+#Function to display the background image on menu screen
+def drawScene(screen, backx):
+  #Draws the left side of the background
+  screen.blit(backgroundPic, pygame.Rect(backx,0,width,height))        
+  #Draws the right side of the background by shifting it to the right
+  screen.blit(backgroundPic, pygame.Rect(backx + width, 0, width, height))
+
+#Function to draw points on the screen
+def drawPoints(screen):
+  #Iterates through each point and draws it on the screen
+  for point_x, point_y in points:
+    screen.blit(pointPic, (point_x, point_y))
+
+#Function to generate random points on the screen
+def generateRandomPoints():
+  #Minimum distance between points
+  min_distance = 100
+  #Maximum attepts to generate a point
+  max_attempts = 10
+
+  #Generates points in the first lane (Y = 240)
+  for _ in range(2):
+    attempts = 0
+    while attempts < max_attempts:
+      point_x = random.randint(15, width - 15)
+      point_y = 240
+
+      too_close = False
+
+      #Checks if the new point is too close to existing points
+      for existing_point_x, existing_point_y in points:
+        distance = math.sqrt((point_x - existing_point_x)**2 + (point_y - existing_point_y)**2)
+        if distance < min_distance:
+          too_close = True
+          break
+
+      if not too_close:
+        points.append((point_x, point_y))
+        break
+
+      attempts += 1
+
+  #Generates points in the second lane (Y = 450)
+  for _ in range(2):
+    attempts = 0
+    while attempts < max_attempts:
+      point_x = random.randint(15, width - 15)
+      point_y = 450
+
+      too_close = False
+
+      #Checks if the new point is too close to existing points
+      for existing_point_x, existing_point_y in points:
+        distance = math.sqrt((point_x - existing_point_x)**2 + (point_y - existing_point_y)**2)
+        if distance < min_distance:
+          too_close = True
+          break
+
+      if not too_close:
+        points.append((point_x, point_y))
+        break
+
+      attempts += 1
+
+#Function to draw waste bins on the screen
+def drawWasteBin(screen):
+  #Loops through each waste's coordinates and draws it on the screen
+  for waste_x, waste_y in wastes:
+    screen.blit(wastePic, (waste_x, waste_y))
+
+#Function to generate random waste bins on the screen
+def generateWasteBins():
+  #Minimum distance between waste bins
+  min_distance = 100
+  #Maximum attempts to generate a waste peel
+  max_attempts = 10
+
+  #Generates waste peel in the first lane (Y = 240)
+  attempts = 0
+  while attempts < max_attempts:
+    waste_x = random.randint(15, width - 15)
+    waste_y = 255
+
+    too_close = False
+
+    #Checks if the new waste peel is too close to existing points and waste bins
+    for existing_point_x, existing_point_y in points + wastes:
+      distance = math.sqrt((waste_x - existing_point_x)**2 + (waste_y - existing_point_y)**2)
+      if distance < min_distance:
+        too_close = True
+        break
+
+    if not too_close:
+      wastes.append((waste_x, waste_y))
+      break
+
+    attempts += 1
+
+  #Generates waste peel in the second lane (Y = 450)
+  attempts = 0
+  while attempts < max_attempts:
+    waste_x = random.randint(15, width - 15)
+    waste_y = 460
+
+    too_close = False
+
+    #Checks if the new waste peel is too close to existing points and waste bins
+    for existing_point_x, existing_point_y in points + wastes:
+      distance = math.sqrt((waste_x - existing_point_x)**2 + (waste_y - existing_point_y)**2)
+      if distance < min_distance:
+        too_close = True
+        break
+
+    if not too_close:
+      wastes.append((waste_x, waste_y))
+      break
+
+    attempts += 1
+
+#Displays score on the screen
+def displayScore(screen, score):
+  score_text = score_font.render("Score: " + str(score), True, (255,255,255))
+  screen.blit(score_text, (10,10))
+
+#Displays level on the screen
+def drawLevel(screen, level):
+  level_text = level_font.render("Level" + " " + str(level), True, (255, 255, 255))
+  screen.blit(level_text, (500, 10))
+
+#Display lives on the screen
+def drawLives(screen):
+  #Loops through each life and determines its position on the screen
+  for i in range(num_lives):
+    lives_x = 200 + i * (scaled_lives_width + 5)
+    lives_y = -5
+    screen.blit(livesPic, (lives_x, lives_y))
+
+#Draws roads
+def drawRoads(screen):
+  #Variables for road lanes 
+  lane_width = 150
+  num_lanes = 2
+
+  #Draws two road lanes
+  for i in range(num_lanes):
+    lane_y = 305 + i * (lane_width + 55)
+    if i % 2 == 0:
+      pygame.draw.rect(screen, lane_color1, (0, lane_y, width, lane_width))
+    else:
+      pygame.draw.rect(screen, lane_color1, (0, lane_y, width, lane_width))
+
+    #Variables for white dashed lines between roads 
+    line_width = 50
+    line_gap = 20
+    num_lines = (width + line_gap) // (line_width + line_gap)
+
+    #Draws white lines
+    for j in range(num_lines):
+      if j % 2 == 0:
+        line_start = j * (line_width + line_gap) + 50
+        pygame.draw.rect(screen, (255, 255, 255), (line_start, lane_y + lane_width // 2, line_width, 5))
+
+#Draws water body
+def drawWater(screen):
+  water_color = (30,144,255)
+  water_rect = pygame.Rect(0, 75, 1000, 175)
+  pygame.draw.rect(screen, water_color, water_rect)
+
+#Loads images of logs on water body
+def drawLog(screen, log_x, log_y):
+  screen.blit(logPic, (log_x, log_y))
+
+#Loads images of the cars
+def drawCar(screen, car_x, car_y):
+  screen.blit(carPic, (car_x, car_y)) #draw the picture
+
+#Function to draw the menu button in game screen
+def drawMenuButton(screen):  
+  #Draws the menu button rectangle
+  pygame.draw.rect(screen, MENU_BUTTON_COLOR, (width - MENU_BUTTON_WIDTH, 0, MENU_BUTTON_WIDTH, MENU_BUTTON_HEIGHT))
+
+  #Defines font for the button text
+  button_font = pygame.font.SysFont("Arial", 20)
+
+  #Renders text on the button 
+  button_text = button_font.render("Menu", True, MENU_BUTTON_TEXT_COLOR)
+
+  #Gets the rectangle representing the text surface and centers it on the button
+  text_rect = button_text.get_rect(center=(width - MENU_BUTTON_WIDTH // 2, MENU_BUTTON_HEIGHT // 2))
+
+  #Draws the button text on the screen at a specified position
+  screen.blit(button_text, text_rect)
+
+#Function to draw menu screen
+def drawMenu(screen, button, mx, my, state):
+  #Displays background image on the screen
+  screen.blit(backgroundPic, (0, 0))
+  drawScene(screen, xBack)
+
+  # Display "Crossy Road" text
+  crossy_road_text = titleFont.render("Crossy Road", True, (0, 100, 0))  # Green text
+  crossy_road_text_rect = crossy_road_text.get_rect(center=(width // 2, height // 4))
+  screen.blit(crossy_road_text, crossy_road_text_rect)
+
+  #Defines block with and height for menu choices
+  blockWidth = width // 3
+  blockHeight = height // 8
+
+  #Defines rectangles for menu choices
+  rectList = [
+      pygame.Rect(75, 250, blockWidth, blockHeight), #Game choice
+      pygame.Rect(600, 250, blockWidth, blockHeight), #Help choice
+      pygame.Rect(337, 400, blockWidth, blockHeight) #Quit choice
+  ] 
+
+  stateList = [STATE_GAME, STATE_HELP, STATE_QUIT]
+  titleList = ["Play Game", "Help", "Quit Game"]
+
+  #Iterates through each menu choice
+  for i in range(len(rectList)):
+    rect = rectList[i]  # Gets the current Rect
+
+    #Draws the rectangle for the menu choice
+    pygame.draw.rect(screen, (255, 255, 255), rect)
+
+    #Draws black lines along the four corners of the rectangle
+    pygame.draw.line(screen, (0, 0, 0), rect.topleft, rect.topright, 2)
+    pygame.draw.line(screen, (0, 0, 0), rect.topleft, rect.bottomleft, 2)
+    pygame.draw.line(screen, (0, 0, 0), rect.topright, rect.bottomright, 2)
+    pygame.draw.line(screen, (0, 0, 0), rect.bottomleft, rect.bottomright, 2)
+
+    #Renders the text for menu choice
+    text = titleFont2.render(titleList[i], 1, (0, 0, 0))
+
+    # Gets the size of the rendered text
+    textWidth, textHeight = titleFont2.size(titleList[i])
+
+    #Calculates the positioning for centering the text within the rectangle
+    useW = (blockWidth - textWidth) // 2
+    useH = (blockHeight - textHeight) // 2
+
+    #Creates a centered rectangle for the text
+    textRect = pygame.Rect(rect[0] + useW, rect[1] + useH, textWidth, textHeight)
+
+    # Draws the text on the screen at the specified position
+    screen.blit(text, textRect)
+
+    # Checks if the mouse is over the current menu choice
+    if rect.collidepoint(mx, my):
+      pygame.draw.rect(screen, (0, 0, 0), rect, 2)  # Highlights the choice with a broader
+      if button == 1:  # Checks if the left mouse button is clicked
+        state = stateList[i]  # Sets the state based on the selected choice
+
+  return state  # Return the updated state
+
+#Function to draw game state
+def drawGame(screen, button, mx, my, state):
+  #Draws a blue rectangle as the background for the game
+  pygame.draw.rect(screen, (0, 0, 255), (0, 0, width, height))
+
+  #Checks if the right mouse button is clicked
+  if button == 3:
+    state = STATE_MENU
+    resetGame()
+
+  #Checks to see if there are no points on the screen
+  if not points:
+    generateRandomPoints()
+
+  #Checks to see if there are no waste bins on the screen
+  if not wastes:
+    generateWasteBins()
+
+  #Draws the roads, water, menu button and lives on the screen
+  drawRoads(screen)
+  drawWater(screen)
+  drawMenuButton(screen)
+  drawLives(screen)
+
+  return state  #Return the updated state
+
+#Function to draw help state
+def drawHelp(screen, button, mx, my, state):
+  #Draws a green rectangle as the background for the help state
+  pygame.draw.rect(screen, (175, 225, 175), (0, 0, width, height))
+
+  #Defines the text for the help screen
+  help_text = [
+    "Welcome to the Crossy Road game!",
+    "Use the UP, DOWN, LEFT, RIGHT arrow keys to move the character and",
+    "reach the top. Cross the road and river by avoiding cars and jumping on",
+    "logs. Be careful not to fall into the water or get hit by any cars!",
+    "Collect extra points, but also be careful of the waste bins because",
+    "they contain e-waste, and interacting with them will make you lose points.",
+    "Also keep track of the lives, if you lose all of them then the game is over.", "The timer decreases time every level. Press the MENU BUTTON at the top",
+    "right corner to go back to the menu."
+  ]
+
+  #Defines font and text height for rendering the help text
+  text_font = pygame.font.SysFont("Arial", 25)
+  text_height = 55
+
+  #Renders and draws each line of text on the screen 
+  for i in range(len(help_text)):
+    line_text = text_font.render(help_text[i], True, (0, 0, 0))
+    screen.blit(line_text, (50, 100 + i * text_height))
+
+  #Checks if the right mouse button is clicked
+  if button == 3:
+      state = STATE_MENU
+
+  return state  #Return the updated state
+
+#Function to reset the game state
+def resetGame():
+    # Declares global variables to be modified
+    global player_rect, time_remaining, current_level_time, on_log, on_log_rect, points_earned, screen_y_offset, points, wastes, total_level_time, crossed_595, crossed_510, crossed_390, crossed_310, crossed_log
+
+    #Game state variables
+    points_earned = 0
+    screen_y_offset = 0
+    current_level_time = 0
+
+    #Resets player's position to (0, 0)
+    player_rect.topleft = (500, 660)
+
+    #Resets game-related variables
+    crossed_top_edge = False  # Reset the flag for the top edge
+
+    #Resets timer-related variables
+    total_level_time = 60000 - (level - 1) * 5000
+
+    time_remaining = total_level_time
+    screen_y_offset = 0
+    current_level_time = 0
+
+    #Reset variables related to log interaction
+    on_log = False
+    on_log_rect = None
+
+    #Flags to check if player has crossed certain lanes 
+    crossed_595 = False
+    crossed_510 = False
+    crossed_390 = False
+    crossed_310 = False
+    crossed_log = False
+
+    #Regenerate points and waste bins for the new level
+    points = []
+    wastes = []
+    generateRandomPoints()
+    generateWasteBins()
+
+#Function to check collisions with cars, logs, and water
+def checkCollisions():
+  global player_rect, crossed_log, deduct_life, num_lives, on_log, on_log_rect, score
+
+  #Creates a rectangle representing the bottom half of the player
+  player_bottom_rect = pygame.Rect(player_rect.x, player_rect.y + player_rect.height // 2, player_rect.width, player_rect.height // 2)
+
+  collision_detected = False  #Flag to check if any collision occurred
+
+  #Checks collision with cars and logs
+  for car_x, car_y in car_positions_left_to_right_595 + car_positions_right_to_left_510 + car_positions_left_to_right_390 + car_positions_right_to_left_310:
+    car_rect = pygame.Rect(car_x, car_y, scaled_car_width, scaled_car_height)
+    if player_bottom_rect.colliderect(car_rect):
+      deduct_life = True
+
+  #Checks collision with logs
+  for log_x, log_y in log_positions_left_to_right + log_positions_right_to_left:
+      log_rect = pygame.Rect(log_x, log_y, scaled_log_width, scaled_log_height)
+      if player_bottom_rect.colliderect(log_rect) and player_rect.y < log_rect.centery + 10:
+          on_log = True
+          on_log_rect = log_rect  # Update the log the player is on
+          break
+  else:
+      on_log = False
+      on_log_rect = None
+
+  #Checks collision with water and deduct life if not on a log
+  water_rect = pygame.Rect(0, 75, 1000, 175)
+  if not on_log and player_bottom_rect.colliderect(water_rect):
+    num_lives -= 1
+
+    if num_lives == 0:
+      pygame.time.delay(1000)  #Delay for a second before resetting the game
+      showGameOverScreen()
+    else:
+      #Resets player position and any other necessary state
+      player_rect.topleft = (500, 660)
+
+  #Handles the case when a collision is detected
+  if collision_detected or deduct_life:
+    num_lives -= 1
+    deduct_life = False
+
+    if num_lives == 0:
+      pygame.time.delay(1000)  #Delay for a second before resetting the game
+      showGameOverScreen()
+    else:
+      #Resets player position and any other necessary state
+      player_rect.topleft = (500, 660)
+
+  if not on_log:
+    #Handle the case when a collision is detected but not on a log
+    if collision_detected:
+      deduct_life = True
+
+    if deduct_life:
+      num_lives -= 1
+      deduct_life = False
+
+      if num_lives == 0:
+        pygame.time.delay(1000)  #Delay for a second before resetting the game
+        showGameOverScreen()
+      else:
+        #Resets player position and any other necessary state
+        player_rect.topleft = (500, 600)
+
+#Function to display the "Game Over" screen
+def showGameOverScreen():
+  global game_over, show_game_over_screen, state, level, score, num_lives
+
+  #Fills the screen with a black background
+  screen.fill((0, 0, 0))
+  game_over = True
+
+  #Displays "Game Over" text and buttons
+  game_over_font = pygame.font.SysFont("Times New Roman", 50)
+  game_over_text = game_over_font.render("Game Over!", True, (255, 255, 255))
+  game_over_text_rect = game_over_text.get_rect(center=(width // 2, height // 2 - 50))
+  screen.blit(game_over_text, game_over_text_rect)
+
+  play_again_button = pygame.Rect(width // 2 - 150, height // 2 + 20, 300, 70)  #Larger button
+  return_to_menu_button = pygame.Rect(width // 2 - 150, height // 2 + 100, 300, 70)  #Larger button
+
+  while game_over:
+    for event in pygame.event.get():
+      if event.type == pygame.QUIT:
+        pygame.quit()
+        sys.exit()
+      elif event.type == pygame.MOUSEBUTTONDOWN:
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        if play_again_button.collidepoint(mouse_x, mouse_y):
+          game_over = False
+          show_game_over_screen = False
+          level = 1
+          score = 0
+          num_lives = 3
+          resetGame()  #Implement any necessary reset logic
+        elif return_to_menu_button.collidepoint(mouse_x, mouse_y):
+          game_over = False
+          show_game_over_screen = False
+          state = STATE_MENU  #Transition to the menu state
+
+    #Draws "Play Again" button
+    pygame.draw.rect(screen, (255, 255, 255), play_again_button)
+    play_again_font = pygame.font.SysFont("Arial", 40)  #Larger font
+    play_again_text = play_again_font.render("Play Again", True, (0, 0, 0))
+    play_again_text_rect = play_again_text.get_rect(center=play_again_button.center)
+    screen.blit(play_again_text, play_again_text_rect)
+
+    #Draws "Return to Menu" button
+    pygame.draw.rect(screen, (255, 255, 255), return_to_menu_button)
+    return_to_menu_font = pygame.font.SysFont("Arial", 40)  #Larger font
+    return_to_menu_text = return_to_menu_font.render("Menu", True, (0, 0, 0))
+    return_to_menu_text_rect = return_to_menu_text.get_rect(center=return_to_menu_button.center)
+    screen.blit(return_to_menu_text, return_to_menu_text_rect)
+
+    pygame.display.flip()
+
+#Function to draw the timer bar indicating remaining time
+def drawTimerBar(screen, time_remaining):
+  #Calculates the width of the green bar based on the time remaining
+  bar_width = int((time_remaining / total_level_time) * 200)  
+
+  #Draws the green time bar at x location 550
+  pygame.draw.rect(screen, (0, 255, 0), (650, 10, bar_width, 20))  
+
+#Initial positions of cars moving on different lanes
+car_positions_left_to_right_595 = []
+for i in range(5):
+  car_positions_left_to_right_595.append((0 - i * car_spacing, 595))
+
+car_positions_right_to_left_510 = []
+for i in range(5):
+  car_positions_right_to_left_510.append((500 + i * car_spacing, 510))
+
+car_positions_left_to_right_390 = []
+for i in range(5):
+  car_positions_left_to_right_390.append((0 - i * car_spacing, 390))
+
+car_positions_right_to_left_310 = []
+for i in range(5):
+  car_positions_right_to_left_310.append((500 + i * car_spacing, 310))
+
+#Initial positions of logs moving from both directions 
+log_positions_left_to_right = []
+for i in range(4):
+  log_positions_left_to_right.append((0 - i * car_spacing, 65))
+  log_positions_left_to_right.append((0 - i * car_spacing, 155))
+
+log_positions_right_to_left = []
+for i in range(4):
+  log_positions_right_to_left.append((width + i * car_spacing, 110))
+  log_positions_right_to_left.append((width + i * car_spacing, 195))
+
+#Game Loop
+while running:
+    button = 0
+
+    #Event handling
+    for event in pygame.event.get():  
+      if event.type == pygame.QUIT:
+        running = False
+      if event.type == pygame.MOUSEBUTTONDOWN:
+        mx, my = event.pos
+        button = event.button
+
+        if width - MENU_BUTTON_WIDTH <= mx <= width and 0 <= my <= MENU_BUTTON_HEIGHT:
+          state = STATE_MENU
+          if state == STATE_MENU or state == STATE_GAME_OVER:
+              # Only reset score and lives in menu or game over state
+              level = 1
+              score = 0
+              num_lives = 3
+              resetGame()
+
+    #Player controls
+    keys = pygame.key.get_pressed()
+
+    #Handling player movement and player progression
+    if keys[pygame.K_UP] and player_rect.top > 0:
+        player_rect.y -= player_speed
+        # Check if the player reaches the top edge
+        if player_rect.top <= 0 and not crossed_top_edge:
+            level += 1
+            crossed_top_edge = True  # To avoid multiple increments
+            resetGame()  # Reset the game state for the new level
+        elif player_rect.top > 0:
+            crossed_top_edge = False  
+    elif keys[pygame.K_DOWN] and player_rect.bottom < 700:
+        player_rect.y += player_speed
+    elif keys[pygame.K_LEFT] and player_rect.left > 0:
+        player_rect.x -= player_speed
+    elif keys[pygame.K_RIGHT] and player_rect.right < 1000:
+        player_rect.x += player_speed
+
+    #Screen update
+    screen.fill((0,0,0))  
+
+    #State-specific rendering
+    if state == STATE_MENU:                
+      state = drawMenu(screen, button, mx, my, state)
+
+    elif state == STATE_GAME:
+      #Rendering game elements
+      drawRoads(screen)
+      drawWater(screen)
+      drawMenuButton(screen)      
+      drawLives(screen)
+
+      # Updates and draws logs for each direction
+      for i in range(len(log_positions_left_to_right)):
+          log_x, log_y = log_positions_left_to_right[i]
+          drawLog(screen, log_x, log_y)
+          log_x += log_speed
+          if log_x > width:
+              log_x = -orignial_log_width - i * log_spacing
+          log_positions_left_to_right[i] = (log_x, log_y)
+
+          log_rect = pygame.Rect(log_x, log_y, scaled_log_width, scaled_log_height)
+          if 20 <= player_rect.y < 165 and player_rect.colliderect(log_rect) and player_rect.y < log_rect.centery + 1:
+            on_log = True
+            on_log_rect = log_rect  # Update the log the player is on
+            player_rect.x = log_rect.x  # Set player x-position to match the log's x-position
+          else:
+            on_log = False
+
+      for i in range(len(log_positions_right_to_left)):
+          log_x, log_y = log_positions_right_to_left[i]
+          drawLog(screen, log_x, log_y)
+          log_x -= log_speed
+          if log_x < -orignial_log_width:
+              log_x = width + i * log_spacing
+          log_positions_right_to_left[i] = (log_x, log_y)
+
+          log_rect = pygame.Rect(log_x, log_y, scaled_log_width, scaled_log_height)
+          if 90 <= player_rect.y < 215 and player_rect.colliderect(log_rect) and player_rect.y < log_rect.centery + 1:
+            on_log = True
+            on_log_rect = log_rect  # Update the log the player is on
+            player_rect.x = log_rect.x  # Sets player's x-position to match the log's x-position
+          else:
+            on_log = False
+
+      #Updates and draws cars going left to right
+      for i in range(len(car_positions_left_to_right_595)):
+        car_x, car_y = car_positions_left_to_right_595[i]
+        screen.blit(carPic, (car_x, car_y))
+        car_x += car_speed * 1.5
+        if car_x > width:
+          car_x = -scaled_car_width
+        car_positions_left_to_right_595[i] = (car_x, car_y)
+
+      for i in range(len(car_positions_left_to_right_390)):
+        car_x, car_y = car_positions_left_to_right_390[i]
+        screen.blit(carPic, (car_x, car_y))
+        car_x += car_speed * 1.5
+        if car_x > width:
+          car_x = -scaled_car_width
+        car_positions_left_to_right_390[i] = (car_x, car_y)
+
+      #Updates and draws cars going right to left
+      for i in range(len(car_positions_right_to_left_510)):
+        car_x, car_y = car_positions_right_to_left_510[i]
+        screen.blit(car2Pic, (car_x, car_y))
+        car_x -= car_speed * 1.5
+        if car_x < -scaled_car_width:
+          car_x = width
+        car_positions_right_to_left_510[i] = (car_x, car_y)
+
+      for i in range(len(car_positions_right_to_left_310)):
+        car_x, car_y = car_positions_right_to_left_310[i]
+        screen.blit(car2Pic, (car_x, car_y))
+        car_x -= car_speed * 1.5
+        if car_x < -scaled_car_width:
+          car_x = width
+        car_positions_right_to_left_310[i] = (car_x, car_y)
+
+      #Adjusts the player's vertical position based on the screen offset
+      player_y = player_rect.y - screen_y_offset
+
+      #Handling player scoring and movement on logs
+      if 250 <= player_y < 300 and not crossed_595:
+          score += 5
+          crossed_595 = True
+          if on_log:
+              player_rect.y -= screen_y_offset
+      elif 350 <= player_y < 400 and not crossed_510:
+          score += 5
+          crossed_510 = True
+          if on_log:
+              player_rect.y -= screen_y_offset
+      elif 450 <= player_y < 500 and not crossed_390:
+          score += 5 
+          crossed_390 = True
+          if on_log:
+              player_rect.y -= screen_y_offset
+      elif 550 <= player_y < 600 and not crossed_310:
+          score += 5
+          crossed_310 = True
+          if on_log:
+              player_rect.y -= screen_y_offset
+
+      if on_log:
+        player_rect.y -= screen_y_offset
+        screen_y_offset = 0
+        player_rect.y += screen_y_offset
+        player_rect.y -= log_speed
+
+      #Checking collisons and deducting lives
+      checkCollisions()
+
+      #Handling life deduction
+      if deduct_life:
+        num_lives -= 1
+        deduct_life = False
+
+        if num_lives == 0:
+          show_game_over_screen = True
+          showGameOverScreen()
+
+      #Generating and drawing points
+      if not points:
+        generateRandomPoints()
+
+      drawPoints(screen)
+
+      #Handling point collection
+      for point_x, point_y in points:
+        point_rect = pygame.Rect(point_x, point_y, scaled_point_width, scaled_point_height)
+        if point_rect.colliderect(player_rect):
+          score += 1
+          points.remove((point_x, point_y))
+
+      #Generating and drawing waste bins
+      if not wastes:
+        generateWasteBins()
+
+      drawWasteBin(screen)
+
+      #Handling waste peel collection
+      for waste_x, waste_y in wastes:
+        waste_rect = pygame.Rect(waste_x, waste_y, scaled_waste_width, scaled_waste_height)
+        if waste_rect.colliderect(player_rect):
+          score -= 1
+          wastes.remove((waste_x, waste_y))
+
+      #Displaying score, level, and player image
+      displayScore(screen, score)
+      drawLevel(screen, level)
+      screen.blit(playerPic, (player_rect.x, player_rect.y - screen_y_offset)) #Puts image onto screen at a particular location
+
+      #Updates and draws the timer bar
+      drawTimerBar(screen, time_remaining)
+      pygame.display.flip()
+
+      #Updates the timer
+      elapsed_time = myClock.tick(60)
+      time_remaining -= elapsed_time
+      current_level_time += elapsed_time
+
+      #Updates the time spent on the current level
+      current_level_time += elapsed_time
+
+      #Checks if the time is up
+      if time_remaining <= 0:
+          saved_level = level
+          time_remaining = total_level_time
+          resetGame()
+          current_level_time = 0 
+          level = saved_level
+          player_rect.topleft = (500, 660 + level * 50)
+
+    elif state == STATE_HELP:
+      state = drawHelp(screen, button, mx, my, state)
+      drawMenuButton(screen)
+    else:
+      running = False
+
+    pygame.display.flip()
+    myClock.tick(60)  #Waits long enough to have 60 fps
+
+    xBack -= 1
+    if xBack < -1*width:
+      xBack = 0
+
+pygame.quit()
+sys.exit()
